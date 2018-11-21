@@ -22,6 +22,8 @@ class PlayerService {
 
     this._volume = 80;
     this._volumeStep = 10;
+    this.mute = undefined;
+    this.disableVolumeControl = false;
 
     this._shuffle = false;
     this._repeatTrack = false;
@@ -44,6 +46,11 @@ class PlayerService {
   play() {
     this.$log.debug('play');
     this.socketService.emit('play');
+  }
+
+  volatilePlay() {
+    this.$log.debug('volatilePlay');
+    this.socketService.emit('volatilePlay');
   }
 
   pause() {
@@ -187,7 +194,7 @@ class PlayerService {
     } else if (volume > 100) {
       volume = 100;
     }
-    this.$log.log('volume', volume);
+    this.$log.debug('volume', volume);
     this.socketService.emit('volume', volume);
   }
 
@@ -309,7 +316,14 @@ class PlayerService {
         case 'YouTube':
         case 'rr':
         case 'bt':
+        case 'cd':
+        case 'tidal':
+        case 'qobuz':
+        case 'mg':
+        case 'mb':
         case 'wma':
+        case 'qobuz':
+        case 'tidal':
           this.state.fileFormat = {
             url: this.state.trackType,
             name: this.state.trackType
@@ -327,7 +341,6 @@ class PlayerService {
     this.socketService.on('pushState', (data) => {
       this.$log.debug('pushState', data);
       this.state = data;
-
       this.state.disableUi = this.state.disableUiControls || this.state.service === 'analogin';
 
       this.elapsedTime = this.state.seek;
@@ -350,6 +363,8 @@ class PlayerService {
         this.elapsedTimeString = undefined;
         this.songLength = undefined;
       }
+      this.mute = data.mute;
+      this.disableVolumeControl = data.disableVolumeControl;
 
       //Forward emit event
       this.$rootScope.$broadcast('socket:pushState', this.state);

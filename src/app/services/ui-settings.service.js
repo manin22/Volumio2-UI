@@ -51,12 +51,21 @@ class UiSettingsService {
     }
   }
 
-  setLanguage() {
-    this.$log.debug('SetLanguage');
+  setLanguage(lang = null) {
+    this.$log.debug('setLanguage');
+    if (lang) {
+      this.$translate.use(lang);
+      return;
+    }
+    //TODO GET FROM DB
+    if (!this.socketService.isSocketAvalaible()) {
+      this.$translate.use(this.getBrowserDefaultLanguage());
+      return;
+    }
     if (~location.href.indexOf('wizard')) {
       this.browserLanguage = this.getBrowserDefaultLanguage();
     } else {
-      if(this.uiSettings.language) {
+      if(this.uiSettings && this.uiSettings.language) {
         this.$translate.use(this.uiSettings.language);
       } else {
         setTimeout(function(){
@@ -64,6 +73,10 @@ class UiSettingsService {
         }.bind(this), 1000);
       }
     }
+  }
+
+  setLoadingBar() {
+    this.socketService.loadingBarEnabled = this.uiSettings.loadingBar === false ? false : true;
   }
 
   getBrowserDefaultLanguage() {
@@ -105,6 +118,7 @@ class UiSettingsService {
       this.$log.debug('pushUiSettings', this.uiSettings);
       this.setLanguage();
       this.setBackground();
+      this.setLoadingBar();
     });
 
     this.socketService.on('pushBackgrounds', (data) => {
@@ -148,8 +162,10 @@ class UiSettingsService {
         return this.uiSettings;
       })
       .finally(() => {
-        this.socketService.emit('getUiSettings');
-        this.socketService.emit('getWizard');
+		if (this.socketService.isSocketAvalaible()) {
+        	this.socketService.emit('getUiSettings');
+        	this.socketService.emit('getWizard');
+		}
       });
     return this.settingsPromise;
 

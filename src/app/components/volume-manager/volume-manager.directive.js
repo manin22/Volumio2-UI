@@ -41,7 +41,31 @@ class VolumeManagerController {
     this.showVerticalSlider = false;
     this.themeManager = themeManager;
     this.$scope = $scope;
+    this.volume = playerService.volume;
 
+    this.startVolumeStatusListeners();
+    this.knobOptions = {
+      min: 0,
+      max: 100,
+      fgColor: themeManager.getCssValue('color'),
+      bgColor: themeManager.getCssValue('backgroundColor'),
+      width: 210,
+      height: 210,
+      displayInput: false,
+      step: 1,
+      angleOffset: -160,
+      angleArc: 320,
+      readOnly: false,
+      thickness: 0.2
+    };
+    if (this.type === 'knob') {
+      if (uiSettingsService.uiSettings !== undefined && uiSettingsService.uiSettings.knobDesktopThickness !== undefined) {
+        this.knobDesktopThickness = uiSettingsService.uiSettings.knobDesktopThickness;
+      }
+    }
+
+    // This is old debouncing mechanism
+    /*
     if (this.type === 'knob') {
       this.knobOptions = {
         min: 0,
@@ -54,18 +78,11 @@ class VolumeManagerController {
         step: 1,
         angleOffset: -160,
         angleArc: 320,
+        readOnly: false,
         thickness: uiSettingsService.uiSettings.knobDesktopThickness || 0.2
       };
-      this.volume = playerService.volume;
-      console.info('playerService.volume', playerService.volume);
-      $scope.$watch(
-        () => playerService.volume,
-        value => {
-          if (value) {
-            this._updateKnobState();
-          }
-        }
-      );
+
+
     } else if (this.type === 'slider') {
       // this.volume = playerService.volume;
 
@@ -103,18 +120,28 @@ class VolumeManagerController {
         }
       );
     }
+    */
   }
 
   toggleMute() {
     this.playerService.toggleMute();
-    this._updateKnobState();
   }
 
   _updateKnobState() {
-    if (this.playerService.state.mute) {
-      this.knobOptions.fgColor = '#999';
+    if (this.playerService.mute || this.playerService.disableVolumeControl) {
+      if (this.knobOptions) {
+        this.knobOptions.fgColor = '#999';
+      }
+
     } else {
-      this.knobOptions.fgColor = this.themeManager.getCssValue('color');
+      if (this.themeManager && this.knobOptions) {
+        this.knobOptions.fgColor = this.themeManager.getCssValue('color');
+      }
+
+    }
+
+    if (this.playerService.disableVolumeControl) {
+      this.knobOptions.readOnly = true;
     }
   }
 
@@ -144,6 +171,15 @@ class VolumeManagerController {
       document.ontouchmove = function(e){
         return true;
       };
+  }
+
+  startVolumeStatusListeners() {
+    this.$scope.$watchCollection(
+      () => [this.playerService.mute, this.playerService.isVolumeAvailable],
+      value => {
+        this._updateKnobState();
+      }
+    );
   }
 }
 
